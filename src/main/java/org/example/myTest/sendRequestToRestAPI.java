@@ -2,6 +2,7 @@ package org.example.myTest;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.sun.deploy.security.SelectableSecurityManager;
 import okhttp3.*;
 import org.apache.poi.ss.usermodel.Cell;
 import org.apache.poi.ss.usermodel.Row;
@@ -10,6 +11,7 @@ import org.apache.poi.ss.usermodel.Workbook;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.example.Entities.DataEntryModel;
 import org.example.Entities.TimeEntry;
+import org.example.Entities.Token;
 import org.example.TokenArray;
 
 import java.io.BufferedReader;
@@ -21,6 +23,7 @@ import java.net.URL;
 import java.sql.*;
 import java.sql.Connection;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -33,6 +36,95 @@ public class sendRequestToRestAPI {
 //        getToken();
         getDataEntryModel();
 //        DataModelToExcel();
+    }
+
+    public static String getHRISToken() {
+        geturl = "https://hris-api.tavanir.org.ir/api/v3.0/Auth/Login";
+        try {
+            OkHttpClient okHttpClient = new OkHttpClient();
+            String jsonData = "{\"Username\":\"1222401\",\"Password\":\"472533\"}";
+            MediaType mediaType = MediaType.parse("application/json; charset=utf-8");
+            RequestBody body = RequestBody.create(mediaType, jsonData);
+            Request request = new Request.Builder().url(geturl).post(body).build();
+
+            ResponseBody responseBody = okHttpClient.newCall(request).execute().body();
+            ObjectMapper objectMapper = new ObjectMapper();
+            HashMap<String, Object> hm = objectMapper.readValue(responseBody.string(), HashMap.class);
+
+            if (hm.get("Status").toString().equals("OK"))
+                return hm.get("Token").toString();
+            /*for (int i = 0; i < tokenArray.getTokens().size(); i++) {
+                System.out.println(tokenArray.getTokens().get(i).getToken());
+                System.out.println(tokenArray.getTokens().get(i).getStatus());
+            }
+            */
+            return null;
+        } catch (Exception exception) {
+            exception.printStackTrace();
+            return null;
+        }
+    }
+
+    public static void getHRISActives() {
+
+        try {
+            OkHttpClient okHttpClient = new OkHttpClient();
+            String tokenString = getHRISToken();
+            geturl = "https:/hris-api.tavanir.org.ir/api/v3.0/TimeEntry/Actives";
+//            MediaType mediaType = MediaType.parse("application/json; charset=utf-8");
+//            RequestBody body = RequestBody.create(mediaType, jsonData);
+            Request request = new Request.Builder().url(geturl).get().addHeader("Authorization", "Bearer " + tokenString).build();
+            try (Response response = okHttpClient.newCall(request).execute()) {
+                if (response.isSuccessful() && response.body() != null) {
+                    String jsonData = response.body().string();
+                    ObjectMapper objectMapper = new ObjectMapper();
+                    HashMap<String, Object> hm = objectMapper.readValue(jsonData, HashMap.class);
+                    System.out.println("parsed hashmap: " + hm.size());
+                    ArrayList<HashMap<String, Object>> al = (ArrayList<HashMap<String, Object>>) hm.get("Model");
+                    System.out.println(al.size());
+                    for (int i = 0; i < al.size(); i++) {
+                        System.out.println("code is " +al.get(i).get("Code")+"  "+"Title is " +al.get(i).get("Title") + "  "+ "Id is " +al.get(i).get("Id"));
+                        System.out.println("---------------------------------------------");
+
+                    }
+
+                } else
+                    System.out.println("Request is failed" + response.code());
+            }
+         } catch (Exception exception) {
+            exception.printStackTrace();
+        }
+    }
+
+    public static void getHRISDataSetActives() {
+
+        try {
+            OkHttpClient okHttpClient = new OkHttpClient();
+            String tokenString = getHRISToken();
+            geturl = "https:/hris-api.tavanir.org.ir/api/v3.0/DataSet/Actives";
+//            MediaType mediaType = MediaType.parse("application/json; charset=utf-8");
+//            RequestBody body = RequestBody.create(mediaType, jsonData);
+            Request request = new Request.Builder().url(geturl).get().addHeader("Authorization", "Bearer " + tokenString).build();
+            try (Response response = okHttpClient.newCall(request).execute()) {
+                if (response.isSuccessful() && response.body() != null) {
+                    String jsonData = response.body().string();
+                    ObjectMapper objectMapper = new ObjectMapper();
+                    HashMap<String, Object> hm = objectMapper.readValue(jsonData, HashMap.class);
+                    System.out.println("parsed hashmap: " + hm.size());
+                    ArrayList<HashMap<String, Object>> al = (ArrayList<HashMap<String, Object>>) hm.get("Model");
+                    System.out.println(al.size());
+                    for (int i = 0; i < al.size(); i++) {
+                        System.out.println("code is " +al.get(i).get("Code")+"  "+"Title is " +al.get(i).get("Title") + "  "+ "Id is " +al.get(i).get("Id") + "  "+ "Description is " +al.get(i).get("Description"));
+                        System.out.println("---------------------------------------------");
+
+                    }
+
+                } else
+                    System.out.println("Request is failed" + response.code());
+            }
+        } catch (Exception exception) {
+            exception.printStackTrace();
+        }
     }
 
 
@@ -139,51 +231,47 @@ public class sendRequestToRestAPI {
     }
 
 
+    public static void getDataEntryModel() throws Exception {
+        geturl = "http://192.168.5.72:8080/mapResponse";
+        OkHttpClient okHttpClient = new OkHttpClient();
+        String jsonData = "{\"user\":\"123456\",\"password\":\"13650813\"}";
+        MediaType mediaType = MediaType.parse("application/json; charset=utf-8");
+        RequestBody body = RequestBody.create(mediaType, jsonData);
+        Request request = new Request.Builder().url(geturl).post(body).build();
 
-        public static void getDataEntryModel () throws Exception {
-            geturl = "http://192.168.5.72:8080/mapResponse";
-            OkHttpClient okHttpClient = new OkHttpClient();
-            String jsonData = "{\"user\":\"123456\",\"password\":\"13650813\"}";
-            MediaType mediaType = MediaType.parse("application/json; charset=utf-8");
-            RequestBody body = RequestBody.create(mediaType, jsonData);
-            Request request = new Request.Builder().url(geturl).post(body).build();
+        ResponseBody responseBody = okHttpClient.newCall(request).execute().body();
+        ObjectMapper objectMapper = new ObjectMapper();
+        assert responseBody != null;
+        TimeEntry timeEntry = objectMapper.readValue(responseBody.string(), TimeEntry.class);
 
-            ResponseBody responseBody = okHttpClient.newCall(request).execute().body();
-            ObjectMapper objectMapper = new ObjectMapper();
-            assert responseBody != null;
-            TimeEntry timeEntry = objectMapper.readValue(responseBody.string(), TimeEntry.class);
+        StringBuffer sb = new StringBuffer();
+        List<String> fields = new ArrayList<>();
+        for (DataEntryModel dataEntryModel : timeEntry.getModel()) {
+            fields.add(dataEntryModel.getTitle());
+        }
+        Connection con = null;
+        String sb1 = String.join(", ", fields);
+        String Query = "select " + sb1 + " from hr_c_bpartners";
 
-            StringBuffer sb=new StringBuffer();
-            List<String> fields = new ArrayList<>();
-            for (DataEntryModel dataEntryModel : timeEntry.getModel() ) {
-                fields.add(dataEntryModel.getTitle());
-            }
-Connection con=null;
-            String sb1=String.join(", ",fields);
-            String Query = "select " + sb1 + " from hr_c_bpartners";
-
-            String url="jdbc:oracle:thin:@192.168.5.30:1521:orcl";
-            try {
-                Class.forName("oracle.jdbc.driver.OracleDriver").newInstance();
-                con = DriverManager.getConnection(url,"repos","repos");
-                if (con != null) {
-                    System.out.println("is connected!!");
-                    PreparedStatement preparedStatement=con.prepareStatement(Query);
-                    ResultSet rs=preparedStatement.executeQuery();
-                    System.out.println("size of rs is "+rs.getFetchSize());
-
-                }
-            }
-            catch (Exception exception)
-            {
-                System.out.println(exception.getCause());
-            }
-            finally {
+        String url = "jdbc:oracle:thin:@192.168.5.30:1521:orcl";
+        try {
+            Class.forName("oracle.jdbc.driver.OracleDriver").newInstance();
+            con = DriverManager.getConnection(url, "repos", "repos");
+            if (con != null) {
+                System.out.println("is connected!!");
+                PreparedStatement preparedStatement = con.prepareStatement(Query);
+                ResultSet rs = preparedStatement.executeQuery();
+                System.out.println("size of rs is " + rs.getFetchSize());
 
             }
+        } catch (Exception exception) {
+            System.out.println(exception.getCause());
+        } finally {
+
+        }
 
 
-            System.out.println(sb1);
+        System.out.println(sb1);
             /*
             for (int i = 0; i < timeEntry.getModel().size(); i++) {
                 sb.append(timeEntry.getModel().get(i).getTitle());
@@ -193,7 +281,7 @@ Connection con=null;
             }
 
              */
-            System.out.println(sb);
+        System.out.println(sb);
 
 
             /*
@@ -238,7 +326,7 @@ Connection con=null;
             }
 
              */
-        }
+    }
 
 
     private static void sendOKHttpRequest() throws Exception {
@@ -256,4 +344,5 @@ Connection con=null;
             exception.printStackTrace();
         }
     }
+
 }
